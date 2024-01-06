@@ -19,21 +19,24 @@ def run_search():
     # --qdrant load --
 
     # docs_path = '/home/rpg59/work/infra/docs/sections'
+    docs_path = './'
     llm = CustomLLM(n=10)
-    # documents = []
-    # text_splitter = CharacterTextSplitter()
+    documents = []
+    text_splitter = CharacterTextSplitter()
 
-    # for fileneame in os.listdir(docs_path):
-    #     filepath = os.path.join(docs_path, fileneame)
+    for fileneame in os.listdir(docs_path):
+        if fileneame != "test.md":
+            continue
+        filepath = os.path.join(docs_path, fileneame)
 
-    #     if os.path.isfile(filepath):
-    #         documents += text_splitter.split_documents(TextLoader(filepath).load())
+        if os.path.isfile(filepath):
+            documents += text_splitter.split_documents(TextLoader(filepath).load())
 
     embeddings = HuggingFaceEmbeddings(
         model_name="sentence-transformers/all-mpnet-base-v2"
     )
 
-    # doc_store = Qdrant.from_documents(documents, embeddings, location="127.0.0.1", collection_name="my_documents")
+    doc_store = Qdrant.from_documents(documents, embeddings, location="127.0.0.1", collection_name="my_documents")
 
     # --qdrant load end --
 

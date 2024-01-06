@@ -10,15 +10,28 @@ from langchain import OpenAI
 
 
 class GigaChatApi:
-    llm_api_url = os.environ["LLM_API_URL"]
     auth_token: str = None
     model_name: str = None
     instance = None
 
     def __init__(self):
+        self.llm_username = os.getenv("LLM_USERNAME")
+        self.llm_password = os.getenv("LLM_PASSWORD")
+        self.llm_api_url = os.getenv("LLM_API_URL")
+
+        if self.llm_api_url is None:
+            raise ValueError("Invalid LLM_API_URL")
+
+        if self.llm_username is None:
+            raise ValueError("Invalid LLM_USERNAME")
+
+        if self.llm_password is None:
+            raise ValueError("Invalid LLM_PASSWORD")
+
         self.update_auth_token()
         self.update_model_name()
 
+    @staticmethod
     def get_instance():
         if GigaChatApi.instance is None:
             GigaChatApi.instance = GigaChatApi()
@@ -47,11 +60,9 @@ class GigaChatApi:
         return res.choices[0].message.content
 
     def update_auth_token(self):
-        username = os.environ["LLM_USERNAME"]
-        password = os.environ["LLM_PASSWORD"]
         print(self.llm_api_url)
 
-        response = requests.post(f"{self.llm_api_url}/token", auth=(username, password))
+        response = requests.post(f"{self.llm_api_url}/token", auth=(self.llm_username, self.llm_password))
 
         # if response.status_code != 200:
         #     foobar123
@@ -80,6 +91,7 @@ class CustomLLM(LLM):
             raise ValueError("stop kwargs are not permitted.")
         foo = GigaChatApi.get_instance()
         res = foo.make_request(prompt)
+
         return res
 
     @property
