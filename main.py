@@ -1,46 +1,44 @@
-from typing import Union
-import requests
+import os
 
 from fastapi import FastAPI
 from pydantic import BaseModel
+from outline import Outline
+from searcher import Searcher
+from update_documents import update_documents
+from fastapi_utils.tasks import repeat_every
+from qdrant_client import QdrantClient
 import uvicorn
-
-from search import run_search
-
-
-app = FastAPI()
-
-
-class Item(BaseModel):
-    name: str
-    price: float
-    is_offer: Union[bool, None] = None
 
 
 class Query(BaseModel):
     data: str
 
 
+qdrant_url = os.getenv("QDRANT_URL")
+
+if qdrant_url is None:
+    ValueError("Invalid QDRANT_URL")
+
+outline = Outline()
+qdrant_client = QdrantClient(qdrant_url)
+searcher = Searcher(qdrant_client)
+app = FastAPI()
+
+
+@app.on_event("startup")
+@repeat_every(seconds=60 * 60 * 24)
+def update():
+    update_documents(outline, qdrant_url, qdrant_client)
+
+
 @app.post("/query")
-def query():
-    res_data = run_search()
-    return {"res": res_data}
+def query(query: Query):
+    return searcher.search(query.data)
 
 
-@app.get("/")
-def read_root():
-    data = requests.get("https://607ea67e02a23c0017e8bcd6.mockapi.io/foo").json()
-    return data
-
-
-@app.get("/items/{item_id}")
-def read_item(item_id: int, q: Union[str, None] = None):
-    return {"item_id": item_id, "q": q}
-
-
-@app.put("/items/{item_id}")
-def update_item(item_id: int, item: Item):
-    return {"item_name": item.name, "item_id": item_id}
+@app.get("/health")
+def health():
+    return "Ok"
 
 
 if __name__ == "__main__":
