@@ -1,22 +1,11 @@
-from qdrant_client import QdrantClient
-from langchain.chains import VectorDBQA
-from langchain_community.embeddings import HuggingFaceEmbeddings
-from langchain_community.vectorstores import Qdrant
+from langchain_core.prompts import PromptTemplate
 from langchain_community.chat_models import GigaChat
 
-
 class Searcher:
-    def __init__(self, client: QdrantClient):
+    def __init__(self):
         self.llm = GigaChat(verify_ssl_certs=False)
-        self.client = client
 
-        embeddings = HuggingFaceEmbeddings(
-            model_name="sentence-transformers/all-mpnet-base-v2"
-        )
-
-        self.doc_store = Qdrant(self.client, "default", embeddings)
-
-    def search(self, query: str):
-        qa = VectorDBQA.from_chain_type(llm=self.llm, chain_type="stuff", vectorstore=self.doc_store)
-
-        return qa.run(query)
+    def search(self, code: str):
+        prompt = PromptTemplate.from_template(
+            "I'm working on a {language} project and I need you to review my code and suggest improvements. {code}")
+        return self.llm.invoke(prompt.format(language='typescript', code=code))

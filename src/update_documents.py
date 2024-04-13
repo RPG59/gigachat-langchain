@@ -2,7 +2,6 @@ from langchain_community.embeddings import HuggingFaceEmbeddings
 from langchain.text_splitter import MarkdownHeaderTextSplitter
 from langchain_community.vectorstores import Qdrant
 from qdrant_client import QdrantClient
-from outline import Outline
 
 headers_to_split_on = [
     ("#", "Header 1"),
