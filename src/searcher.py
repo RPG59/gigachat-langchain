@@ -7,24 +7,41 @@ from langchain.chains.combine_documents import create_stuff_documents_chain
 
 
 class Searcher:
+    not_found_answer = "#НЕ ЗНАЮ#"
+    fallback_phrases = ["Не люблю менять тему разговора", "Что-то в вашем вопросе меня смущает",
+                        "Как у нейросетевой языковой модели"]
+
     def __init__(self, llm: BaseChatModel, client: QdrantClient, embeddings):
         self.llm = llm
         self.client = client
         self.doc_store = Qdrant(self.client, "default", embeddings)
 
-    def search(self, query: str):
+    def parse_answer(self, answer: str) -> str | None:
+        for phrase in self.fallback_phrases:
+            if phrase.lower() in answer.lower():
+                return None
+
+        if answer.startswith(self.not_found_answer):
+            return None
+
+        return answer
+
+    def search(self, query: str) -> str | None:
         system_prompt = (
             "Используя данный контекст ответь на вопрос. "
-            "Если не можешь дать ответ на вопрос, скажи #НЕ ЗНАЮ#. "
-            "Используйте максимум три предложения и будьте краткими. "
+            f"Если не можешь дать ответ на вопрос, скажи {self.not_found_answer}. "
+            "Используй максимум три предложения и будь кратким. "
             "Контекст: {context}"
         )
+
         prompt = ChatPromptTemplate.from_messages(
             [
                 ("system", system_prompt),
                 ("human", "{input}"),
             ]
         )
+
         question_answer_chain = create_stuff_documents_chain(self.llm, prompt)
         chain = create_retrieval_chain(self.doc_store.as_retriever(), question_answer_chain)
-        return chain.invoke({"input": query})
+
+        return self.parse_answer(chain.invoke({"input": query}).get("answer"))

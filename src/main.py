@@ -1,7 +1,7 @@
 import os
 import logging
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 
 from outline import Outline
@@ -19,7 +19,7 @@ if os.getenv("GIGACHAT_CREDENTIALS") is None:
 qdrant_url = os.getenv("QDRANT_URL")
 
 if qdrant_url is None:
-    ValueError("Invalid QDRANT_URL")
+    ValueError("QDRANT_URL environment variable not set")
 
 logging.basicConfig(level=logging.INFO)
 
@@ -37,14 +37,19 @@ app = FastAPI()
 
 
 @app.on_event("startup")
-@repeat_every(seconds=60 * 60 * 24)
+@repeat_every(seconds=60 * 60 * 24)  # Every 24 hours
 def update():
     update_documents(outline, qdrant_url, qdrant_client, embeddings)
 
 
 @app.post("/query")
 def query(query: Query):
-    return searcher.search(query.data)
+    answer = searcher.search(query.data)
+
+    if answer is None:
+        raise HTTPException(status_code=404, detail="Answer not found in context")
+
+    return {"data": answer}
 
 
 @app.get("/health")
