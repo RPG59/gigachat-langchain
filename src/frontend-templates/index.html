@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Document</title>
+    <script src="https://unpkg.com/htmx.org"></script>
+    <script src="https://unpkg.com/htmx.org@1.9.12/dist/ext/client-side-templates.js"></script>
+    <script src="https://unpkg.com/mustache@latest"></script>
+<body>
+
+<div hx-ext="client-side-templates">
+    <div id="messages-container"></div>
+
+    <template id="foo">
+        <p>{{data}}</p>
+    </template>
+
+    <form hx-post="/query" hx-ext="submitjson" mustache-template="foo" hx-target="#messages-container" >
+
+        <input type="text" name="data" required minlength="10">
+        <button type="submit">Submit</button>
+    </form>
+</div>
+
+<script>
+    htmx.defineExtension('submitjson', {
+      onEvent: function (name, evt) {
+        if (name === "htmx:configRequest") {
+          evt.detail.headers['Content-Type'] = "application/json"
+        }
+      },
+      encodeParameters: function(xhr, parameters, elt) {
+        xhr.overrideMimeType('text/json') // override default mime type
+        return (JSON.stringify(parameters))
+      }
+    })
+</script>
+</body>
+</html>

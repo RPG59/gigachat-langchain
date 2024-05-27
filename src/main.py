@@ -1,16 +1,19 @@
 import os
 import logging
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
 
 from outline import Outline
 from searcher import Searcher
 from update_documents import update_documents
 from fastapi_utils.tasks import repeat_every
+from fastapi.staticfiles import StaticFiles
 from qdrant_client import QdrantClient
 from langchain_community.embeddings.gigachat import GigaChatEmbeddings
 from langchain_community.chat_models.gigachat import GigaChat
+from starlette.templating import Jinja2Templates
 import uvicorn
 
 if os.getenv("GIGACHAT_CREDENTIALS") is None:
@@ -34,6 +37,7 @@ embeddings = GigaChatEmbeddings(scope="GIGACHAT_API_CORP", verify_ssl_certs=Fals
 searcher = Searcher(GigaChat(model="GigaChat-Pro", scope="GIGACHAT_API_CORP", verify_ssl_certs=False), qdrant_client,
                     embeddings)
 app = FastAPI()
+templates = Jinja2Templates(directory="src/frontend-templates")
 
 
 @app.on_event("startup")
@@ -52,9 +56,17 @@ def query(query: Query):
     return {"data": answer}
 
 
+@app.post("/test", response_class=HTMLResponse)
+def query(query: Query):
+    return '<tr><td>Joe Smith</td><td>joe@smith.com</td></tr>'
+
+
 @app.get("/health")
 def health():
     return "Ok"
+
+
+app.mount("/", StaticFiles(directory="src/frontend-templates", html=True), name="static")
 
 
 if __name__ == "__main__":
